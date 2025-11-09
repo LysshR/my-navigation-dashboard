@@ -1,0 +1,35 @@
+{
+  "background": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809",
+  "categories": [
+    {
+      "id": "1",
+      "name": "常用工具",
+      "cards": [
+        {
+          "id": "1",
+          "title": "Google",
+          "url": "https://www.google.com",
+          "icon": "https://www.google.com/favicon.ico"
+        },
+        {
+          "id": "2",
+          "title": "GitHub",
+          "url": "https://github.com",
+          "icon": "https://github.com/favicon.ico"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "name": "社交媒体",
+      "cards": [
+        {
+          "id": "3",
+          "title": "Twitter",
+          "url": "https://twitter.com",
+          "icon": "https://twitter.com/favicon.ico"
+        }
+      ]
+    }
+  ]
+}

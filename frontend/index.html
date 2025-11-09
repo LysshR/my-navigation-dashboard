@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - 导航网站</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 背景层 -->
+    <div class="background-layer" id="backgroundLayer"></div>
+    
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header glass">
+            <h1 class="title">
+                <i class="fas fa-compass"></i>
+                Dashboard
+            </h1>
+            <div class="header-actions">
+                <button class="btn-icon" id="settingsBtn" title="设置">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- 分类容器 -->
+        <main class="main-content" id="categoriesContainer">
+            <!-- 动态生成分类 -->
+        </main>
+
+        <!-- 添加分类按钮 -->
+        <button class="btn-add-category glass" id="addCategoryBtn">
+            <i class="fas fa-plus"></i>
+            添加分类
+        </button>
+    </div>
+
+    <!-- 设置面板 -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> 设置</h2>
+                <button class="btn-close" id="closeSettingsBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>背景图片 URL</label>
+                    <input type="text" id="backgroundInput" placeholder="输入图片URL" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label>或上传本地图片</label>
+                    <input type="file" id="backgroundFile" accept="image/*" class="input-field">
+                </div>
+                <button class="btn-primary" id="saveBackgroundBtn">
+                    <i class="fas fa-save"></i> 保存背景
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加分类弹窗 -->
+    <div class="modal" id="addCategoryModal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2><i class="fas fa-folder-plus"></i> 添加分类</h2>
+                <button class="btn-close" id="closeAddCategoryBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>分类名称</label>
+                    <input type="text" id="categoryNameInput" placeholder="例如：常用工具" class="input-field">
+                </div>
+                <button class="btn-primary" id="saveCategoryBtn">
+                    <i class="fas fa-check"></i> 添加
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加卡片弹窗 -->
+    <div class="modal" id="addCardModal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2><i class="fas fa-bookmark"></i> 添加网站</h2>
+                <button class="btn-close" id="closeAddCardBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>网站名称</label>
+                    <input type="text" id="cardTitleInput" placeholder="例如：Google" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label>网站地址</label>
+                    <input type="url" id="cardUrlInput" placeholder="https://example.com" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label>图标地址</label>
+                    <input type="url" id="cardIconInput" placeholder="https://example.com/favicon.ico" class="input-field">
+                </div>
+                <button class="btn-primary" id="saveCardBtn">
+                    <i class="fas fa-check"></i> 添加
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
