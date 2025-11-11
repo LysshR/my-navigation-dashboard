@@ -31,9 +31,9 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
   z-index: -1;
   transition: background-image 0.5s ease;
+  will-change: background-image;
 }
 
 .background-layer::before {
@@ -53,6 +53,8 @@ body {
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow);
   border-radius: 16px;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .container {
@@ -193,12 +195,13 @@ body {
   border-radius: 16px;
   padding: 25px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   position: relative;
   overflow: hidden;
   text-decoration: none;
   color: var(--text-light);
   display: block;
+  will-change: transform;
 }
 
 .card::before {
@@ -239,6 +242,8 @@ body {
   background: rgba(255, 255, 255, 0.2);
   padding: 8px;
   transition: transform 0.3s ease;
+  will-change: transform;
+  contain: content;
 }
 
 .card:hover .card-icon {

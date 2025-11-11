@@ -1,6 +1,19 @@
+import { memo } from 'react'
 import Card from './Card'
 
-export default function CategorySection({ category, onDeleteCategory, onAddCard, onDeleteCard }) {
+const CategorySection = memo(function CategorySection({ category, onDeleteCategory, onAddCard, onDeleteCard }) {
+  const handleDeleteCategory = () => {
+    onDeleteCategory(category.id)
+  }
+
+  const handleAddCard = () => {
+    onAddCard(category.id)
+  }
+
+  const handleDeleteCard = (cardId) => {
+    onDeleteCard(category.id, cardId)
+  }
+
   return (
     <div className="category">
       <div className="category-header">
@@ -11,7 +24,8 @@ export default function CategorySection({ category, onDeleteCategory, onAddCard,
         <div className="category-actions">
           <button 
             className="btn-small btn-delete"
-            onClick={() => onDeleteCategory(category.id)}
+            onClick={handleDeleteCategory}
+            type="button"
           >
             <i className="fas fa-trash"></i> 删除分类
           </button>
@@ -23,13 +37,16 @@ export default function CategorySection({ category, onDeleteCategory, onAddCard,
           <Card
             key={card.id}
             card={card}
-            onDelete={() => onDeleteCard(category.id, card.id)}
+            onDelete={() => handleDeleteCard(card.id)}
           />
         ))}
         
         <div 
           className="card card-add glass"
-          onClick={() => onAddCard(category.id)}
+          onClick={handleAddCard}
+          role="button"
+          tabIndex={0}
+          onKeyPress={(e) => e.key === 'Enter' && handleAddCard()}
         >
           <i className="fas fa-plus"></i>
           <span>添加网站</span>
@@ -37,4 +54,6 @@ export default function CategorySection({ category, onDeleteCategory, onAddCard,
       </div>
     </div>
   )
-}
+})
+
+export default CategorySection

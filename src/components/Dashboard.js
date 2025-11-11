@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import CategorySection from './CategorySection'
 import Modal from './Modal'
+
+const STORAGE_KEY = 'dashboardData'
 
 const initialData = {
   background: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1920',
@@ -49,33 +51,60 @@ export default function Dashboard() {
   const [backgroundInput, setBackgroundInput] = useState('')
   const [categoryNameInput, setCategoryNameInput] = useState('')
   const [cardData, setCardData] = useState({ title: '', url: '', icon: '' })
+  const notificationTimeoutRef = useRef(null)
 
   // 从 localStorage 加载数据
   useEffect(() => {
-    const saved = localStorage.getItem('dashboardData')
-    if (saved) {
-      setData(JSON.parse(saved))
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const parsedData = JSON.parse(saved)
+        setData(parsedData)
+      }
+    } catch (error) {
+      console.error('Failed to load data from localStorage:', error)
     }
   }, [])
 
   // 保存数据到 localStorage
-  const saveData = (newData) => {
+  const saveData = useCallback((newData) => {
     setData(newData)
-    localStorage.setItem('dashboardData', JSON.stringify(newData))
-  }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newData))
+    } catch (error) {
+      console.error('Failed to save data to localStorage:', error)
+    }
+  }, [])
+
+  // 显示通知
+  const showNotification = useCallback((message) => {
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current)
+    }
+    
+    const notification = document.createElement('div')
+    notification.className = 'notification'
+    notification.textContent = message
+    document.body.appendChild(notification)
+    
+    notificationTimeoutRef.current = setTimeout(() => {
+      notification.remove()
+      notificationTimeoutRef.current = null
+    }, 2000)
+  }, [])
 
   // 更新背景
-  const updateBackground = () => {
+  const updateBackground = useCallback(() => {
     if (backgroundInput.trim()) {
       const newData = { ...data, background: backgroundInput.trim() }
       saveData(newData)
       setShowSettings(false)
       showNotification('背景已更新')
     }
-  }
+  }, [backgroundInput, data, saveData, showNotification])
 
   // 添加分类
-  const addCategory = () => {
+  const addCategory = useCallback(() => {
     if (categoryNameInput.trim()) {
       const newCategory = {
         id: Date.now().toString(),
@@ -91,10 +120,10 @@ export default function Dashboard() {
       setCategoryNameInput('')
       showNotification('分类已添加')
     }
-  }
+  }, [categoryNameInput, data, saveData, showNotification])
 
   // 删除分类
-  const deleteCategory = (categoryId) => {
+  const deleteCategory = useCallback((categoryId) => {
     if (confirm('确定要删除这个分类吗？')) {
       const newData = {
         ...data,
@@ -103,17 +132,17 @@ export default function Dashboard() {
       saveData(newData)
       showNotification('分类已删除')
     }
-  }
+  }, [data, saveData, showNotification])
 
   // 打开添加卡片模态框
-  const openAddCard = (categoryId) => {
+  const openAddCard = useCallback((categoryId) => {
     setCurrentCategoryId(categoryId)
     setShowAddCard(true)
     setCardData({ title: '', url: '', icon: '' })
-  }
+  }, [])
 
   // 添加卡片
-  const addCard = () => {
+  const addCard = useCallback(() => {
     if (cardData.title.trim() && cardData.url.trim()) {
       const newCard = {
         id: Date.now().toString(),
@@ -135,10 +164,10 @@ export default function Dashboard() {
       setShowAddCard(false)
       showNotification('网站已添加')
     }
-  }
+  }, [cardData, currentCategoryId, data, saveData, showNotification])
 
   // 删除卡片
-  const deleteCard = (categoryId, cardId) => {
+  const deleteCard = useCallback((categoryId, cardId) => {
     const newData = {
       ...data,
       categories: data.categories.map(cat => 
@@ -149,19 +178,7 @@ export default function Dashboard() {
     }
     saveData(newData)
     showNotification('网站已删除')
-  }
-
-  // 显示通知
-  const showNotification = (message) => {
-    const notification = document.createElement('div')
-    notification.className = 'notification'
-    notification.textContent = message
-    document.body.appendChild(notification)
-    
-    setTimeout(() => {
-      notification.remove()
-    }, 2000)
-  }
+  }, [data, saveData, showNotification])
 
   return (
     <>
@@ -184,6 +201,7 @@ export default function Dashboard() {
                 setBackgroundInput(data.background)
               }}
               title="设置"
+              type="button"
             >
               <i className="fas fa-cog"></i>
             </button>
@@ -208,6 +226,7 @@ export default function Dashboard() {
             setShowAddCategory(true)
             setCategoryNameInput('')
           }}
+          type="button"
         >
           <i className="fas fa-plus"></i>
           添加分类
@@ -222,16 +241,18 @@ export default function Dashboard() {
         icon="cog"
       >
         <div className="form-group">
-          <label>背景图片 URL</label>
+          <label htmlFor="bg-input">背景图片 URL</label>
           <input
+            id="bg-input"
             type="text"
             className="input-field"
             placeholder="输入图片URL"
             value={backgroundInput}
             onChange={(e) => setBackgroundInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && updateBackground()}
           />
         </div>
-        <button className="btn-primary" onClick={updateBackground}>
+        <button className="btn-primary" onClick={updateBackground} type="button">
           <i className="fas fa-save"></i> 保存背景
         </button>
       </Modal>
@@ -244,17 +265,19 @@ export default function Dashboard() {
         icon="folder-plus"
       >
         <div className="form-group">
-          <label>分类名称</label>
+          <label htmlFor="category-input">分类名称</label>
           <input
+            id="category-input"
             type="text"
             className="input-field"
             placeholder="例如：常用工具"
             value={categoryNameInput}
             onChange={(e) => setCategoryNameInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && addCategory()}
+            autoFocus
           />
         </div>
-        <button className="btn-primary" onClick={addCategory}>
+        <button className="btn-primary" onClick={addCategory} type="button">
           <i className="fas fa-check"></i> 添加
         </button>
       </Modal>
@@ -267,18 +290,21 @@ export default function Dashboard() {
         icon="bookmark"
       >
         <div className="form-group">
-          <label>网站名称</label>
+          <label htmlFor="card-title">网站名称</label>
           <input
+            id="card-title"
             type="text"
             className="input-field"
             placeholder="例如：Google"
             value={cardData.title}
             onChange={(e) => setCardData({ ...cardData, title: e.target.value })}
+            autoFocus
           />
         </div>
         <div className="form-group">
-          <label>网站地址</label>
+          <label htmlFor="card-url">网站地址</label>
           <input
+            id="card-url"
             type="url"
             className="input-field"
             placeholder="https://example.com"
@@ -287,16 +313,18 @@ export default function Dashboard() {
           />
         </div>
         <div className="form-group">
-          <label>图标地址</label>
+          <label htmlFor="card-icon">图标地址</label>
           <input
+            id="card-icon"
             type="url"
             className="input-field"
             placeholder="https://example.com/favicon.ico"
             value={cardData.icon}
             onChange={(e) => setCardData({ ...cardData, icon: e.target.value })}
+            onKeyPress={(e) => e.key === 'Enter' && addCard()}
           />
         </div>
-        <button className="btn-primary" onClick={addCard}>
+        <button className="btn-primary" onClick={addCard} type="button">
           <i className="fas fa-check"></i> 添加
         </button>
       </Modal>
