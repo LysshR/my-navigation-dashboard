@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import CategorySection from './CategorySection'
 import Modal from './Modal'
+import { compressData, decompressData } from '@/utils/storage'
 
 const STORAGE_KEY = 'dashboardData'
 
@@ -59,7 +60,9 @@ export default function Dashboard() {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const parsedData = JSON.parse(saved)
-        setData(parsedData)
+        // 自动解压缩数据（向后兼容旧格式）
+        const decompressed = decompressData(parsedData)
+        setData(decompressed)
       }
     } catch (error) {
       console.error('Failed to load data from localStorage:', error)
@@ -70,7 +73,9 @@ export default function Dashboard() {
   const saveData = useCallback((newData) => {
     setData(newData)
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newData))
+      // 压缩数据后再保存，节省空间
+      const compressed = compressData(newData)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(compressed))
     } catch (error) {
       console.error('Failed to save data to localStorage:', error)
     }
