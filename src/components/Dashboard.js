@@ -5,7 +5,7 @@ import CategorySection from './CategorySection'
 import Modal from './Modal'
 import PasswordModal from './PasswordModal'
 import { compressData, decompressData } from '@/utils/storage'
-import { getPassword, setPassword, clearPassword, getEditMode, setEditMode, clearEditMode, fetchData, saveDataToServer, verifyPassword, fetchUnsplashBackground } from '@/utils/api'
+import { getPassword, setPassword, clearPassword, getEditMode, setEditMode, clearEditMode, fetchData, saveDataToServer, verifyPassword, fetchUnsplashBackground, setUnsplashApiKey } from '@/utils/api'
 
 const initialData = {
   background: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1920',
@@ -58,6 +58,8 @@ export default function Dashboard() {
   const [cardData, setCardData] = useState({ title: '', url: '', icon: '' })
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingUnsplash, setIsLoadingUnsplash] = useState(false)
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [isSavingApiKey, setIsSavingApiKey] = useState(false)
   const notificationTimeoutRef = useRef(null)
 
   // 初始化 - 直接加载数据，检查编辑模式
@@ -205,6 +207,29 @@ export default function Dashboard() {
     }
   }, [])
 
+  // 设置 Unsplash API key
+  const setApiKey = useCallback(async () => {
+    if (!apiKeyInput.trim()) {
+      showNotification('API key 不能为空')
+      return
+    }
+
+    setIsSavingApiKey(true)
+    try {
+      const result = await setUnsplashApiKey(apiKeyInput.trim())
+      if (result.success) {
+        showNotification('API key 已更新')
+        setApiKeyInput('')
+      } else {
+        showNotification('设置失败: ' + result.error)
+      }
+    } catch (error) {
+      showNotification('设置失败')
+    } finally {
+      setIsSavingApiKey(false)
+    }
+  }, [apiKeyInput])
+
   // 更新背景
   const updateBackground = useCallback(() => {
     if (backgroundInput.trim()) {
@@ -307,6 +332,10 @@ export default function Dashboard() {
   const wrappedDeleteCard = useCallback((categoryId, cardId) => {
     requireEditMode(() => deleteCard(categoryId, cardId))
   }, [requireEditMode, deleteCard])
+
+  const wrappedSetApiKey = useCallback(() => {
+    requireEditMode(setApiKey)
+  }, [requireEditMode, setApiKey])
 
   if (isLoading) {
     return (
@@ -436,8 +465,36 @@ export default function Dashboard() {
           onClick={wrappedUpdateBackground}
           disabled={isSaving || isLoadingUnsplash}
           type="button"
+          style={{ marginBottom: '15px' }}
         >
           <i className="fas fa-save"></i> {isSaving ? '保存中...' : '保存背景'}
+        </button>
+        
+        <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '20px 0' }} />
+        
+        <div className="form-group">
+          <label htmlFor="apikey-input">Unsplash API Key</label>
+          <input
+            id="apikey-input"
+            type="password"
+            className="input-field"
+            placeholder="输入你的 Unsplash API Key（覆盖设置）"
+            value={apiKeyInput}
+            onChange={(e) => setApiKeyInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && !isSavingApiKey && wrappedSetApiKey()}
+            disabled={isSaving || isSavingApiKey}
+          />
+          <small style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', display: 'block', marginTop: '5px' }}>
+            仅用于获取随机图片，不会显示在界面上
+          </small>
+        </div>
+        <button 
+          className="btn-secondary" 
+          onClick={wrappedSetApiKey}
+          disabled={isSaving || isSavingApiKey}
+          type="button"
+        >
+          <i className="fas fa-key"></i> {isSavingApiKey ? '设置中...' : '设置 API Key'}
         </button>
       </Modal>
 
