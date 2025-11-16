@@ -95,6 +95,29 @@ export async function fetchUnsplashBackground(query = 'landscape,nature') {
   }
 }
 
+// 设置自定义 Unsplash API key
+export async function setUnsplashApiKey(apiKey) {
+  try {
+    const response = await fetch('/api/unsplash', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ apiKey })
+    })
+    
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || '设置 API key 失败')
+    }
+    
+    const result = await response.json()
+    return { success: true, result }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
 // 保存数据
 export async function saveDataToServer(data, password) {
   try {
