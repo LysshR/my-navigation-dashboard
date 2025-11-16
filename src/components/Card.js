@@ -1,4 +1,6 @@
-export default function Card({ card, onDelete }) {
+import { memo } from 'react'
+
+const Card = memo(function Card({ card, onDelete, isEditMode }) {
   return (
     <a 
       href={card.url} 
@@ -6,21 +8,25 @@ export default function Card({ card, onDelete }) {
       rel="noopener noreferrer"
       className="card glass"
     >
-      <button 
-        className="card-delete"
-        onClick={(e) => {
-          e.preventDefault()
-          onDelete()
-        }}
-      >
-        <i className="fas fa-times"></i>
-      </button>
+      {isEditMode && (
+        <button 
+          className="card-delete"
+          onClick={(e) => {
+            e.preventDefault()
+            onDelete()
+          }}
+          type="button"
+        >
+          <i className="fas fa-times"></i>
+        </button>
+      )}
       
       <div className="card-content">
         <img 
           src={card.icon} 
           alt={card.title}
           className="card-icon"
+          loading="lazy"
           onError={(e) => {
             e.target.src = `https://via.placeholder.com/64?text=${card.title.charAt(0)}`
           }}
@@ -29,4 +35,6 @@ export default function Card({ card, onDelete }) {
       </div>
     </a>
   )
-}
+})
+
+export default Card

@@ -2,6 +2,8 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import crypto from 'crypto'
 
+export const dynamic = 'force-dynamic'
+
 const DATA_FILE = join(process.cwd(), 'data', 'dashboard.json')
 const PASSWORD = process.env.PASSWORD || 'default-password'
 
@@ -84,19 +86,9 @@ async function writeData(data) {
   }
 }
 
-// GET - 获取数据
+// GET - 获取数据（无需密码）
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const password = searchParams.get('password')
-
-    if (!verifyPassword(password)) {
-      return Response.json(
-        { error: '密码错误' },
-        { status: 401 }
-      )
-    }
-
     const data = await readData()
     return Response.json(data)
   } catch (error) {
@@ -108,11 +100,11 @@ export async function GET(request) {
   }
 }
 
-// POST - 更新数据
+// POST - 更新数据或验证密码
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { password, data } = body
+    const { password, data, verifyOnly } = body
 
     if (!verifyPassword(password)) {
       return Response.json(
@@ -121,6 +113,12 @@ export async function POST(request) {
       )
     }
 
+    // 仅验证密码
+    if (verifyOnly) {
+      return Response.json({ success: true })
+    }
+
+    // 保存数据
     if (!data || typeof data !== 'object') {
       return Response.json(
         { error: '无效的数据格式' },

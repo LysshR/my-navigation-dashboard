@@ -38,7 +38,7 @@ export default function PasswordModal({ show, onSubmit, onClose, loading = false
       icon="lock"
     >
       <div className="form-group">
-        <label htmlFor="password-input">访问密码</label>
+        <label htmlFor="password-input">编辑密码</label>
         <input
           id="password-input"
           type="password"

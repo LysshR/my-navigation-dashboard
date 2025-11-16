@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import Card from './Card'
 
-const CategorySection = memo(function CategorySection({ category, onDeleteCategory, onAddCard, onDeleteCard }) {
+const CategorySection = memo(function CategorySection({ category, onDeleteCategory, onAddCard, onDeleteCard, isEditMode }) {
   const handleDeleteCategory = () => {
     onDeleteCategory(category.id)
   }
@@ -21,15 +21,17 @@ const CategorySection = memo(function CategorySection({ category, onDeleteCatego
           <i className="fas fa-folder"></i>
           {category.name}
         </h2>
-        <div className="category-actions">
-          <button 
-            className="btn-small btn-delete"
-            onClick={handleDeleteCategory}
-            type="button"
-          >
-            <i className="fas fa-trash"></i> 删除分类
-          </button>
-        </div>
+        {isEditMode && (
+          <div className="category-actions">
+            <button 
+              className="btn-small btn-delete"
+              onClick={handleDeleteCategory}
+              type="button"
+            >
+              <i className="fas fa-trash"></i> 删除分类
+            </button>
+          </div>
+        )}
       </div>
       
       <div className="cards-grid">
@@ -38,19 +40,22 @@ const CategorySection = memo(function CategorySection({ category, onDeleteCatego
             key={card.id}
             card={card}
             onDelete={() => handleDeleteCard(card.id)}
+            isEditMode={isEditMode}
           />
         ))}
         
-        <div 
-          className="card card-add glass"
-          onClick={handleAddCard}
-          role="button"
-          tabIndex={0}
-          onKeyPress={(e) => e.key === 'Enter' && handleAddCard()}
-        >
-          <i className="fas fa-plus"></i>
-          <span>添加网站</span>
-        </div>
+        {isEditMode && (
+          <div 
+            className="card card-add glass"
+            onClick={handleAddCard}
+            role="button"
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && handleAddCard()}
+          >
+            <i className="fas fa-plus"></i>
+            <span>添加网站</span>
+          </div>
+        )}
       </div>
     </div>
   )

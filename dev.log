@@ -1,0 +1,12 @@
+
+> navigation-dashboard@1.0.0 dev
+> node scripts/init-storage.js && next dev
+
+✓ 数据文件已存在: /home/engine/project/data/dashboard.json
+✓ 存储初始化完成
+   ▲ Next.js 14.0.4
+   - Local:        http://localhost:3000
+   - Environments: .env.local
+
+ ✓ Ready in 1140ms
+[?25h
