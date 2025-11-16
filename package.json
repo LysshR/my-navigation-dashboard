@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "node scripts/init-storage.js && next dev",
+    "build": "node scripts/init-storage.js && next build",
+    "start": "node scripts/init-storage.js && next start",
+    "lint": "next lint",
+    "init": "node scripts/init-storage.js"
   },
   "dependencies": {
     "next": "14.0.4",

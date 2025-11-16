@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import CategorySection from './CategorySection'
 import Modal from './Modal'
+import PasswordModal from './PasswordModal'
 import { compressData, decompressData } from '@/utils/storage'
-
-const STORAGE_KEY = 'dashboardData'
+import { getPassword, setPassword, clearPassword, fetchData, saveDataToServer } from '@/utils/api'
 
 const initialData = {
   background: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1920',
@@ -45,6 +45,9 @@ const initialData = {
 
 export default function Dashboard() {
   const [data, setData] = useState(initialData)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAddCategory, setShowAddCategory] = useState(false)
   const [showAddCard, setShowAddCard] = useState(false)
@@ -52,32 +55,94 @@ export default function Dashboard() {
   const [backgroundInput, setBackgroundInput] = useState('')
   const [categoryNameInput, setCategoryNameInput] = useState('')
   const [cardData, setCardData] = useState({ title: '', url: '', icon: '' })
+  const [isSaving, setIsSaving] = useState(false)
   const notificationTimeoutRef = useRef(null)
 
-  // 从 localStorage 加载数据
+  // 初始化 - 检查是否已有密码
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const parsedData = JSON.parse(saved)
-        // 自动解压缩数据（向后兼容旧格式）
-        const decompressed = decompressData(parsedData)
-        setData(decompressed)
-      }
-    } catch (error) {
-      console.error('Failed to load data from localStorage:', error)
+    const storedPassword = getPassword()
+    if (storedPassword) {
+      setIsAuthenticated(true)
+      loadData(storedPassword)
+    } else {
+      setShowPasswordModal(true)
+      setIsLoading(false)
     }
   }, [])
 
-  // 保存数据到 localStorage
-  const saveData = useCallback((newData) => {
-    setData(newData)
+  // 加载数据
+  const loadData = useCallback(async (password) => {
     try {
-      // 压缩数据后再保存，节省空间
-      const compressed = compressData(newData)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(compressed))
+      setIsLoading(true)
+      const result = await fetchData(password)
+      
+      if (result.success) {
+        const decompressed = decompressData(result.data)
+        setData(decompressed)
+        setIsAuthenticated(true)
+        setPassword(password)
+        showNotification('数据加载成功')
+      } else {
+        throw new Error(result.error)
+      }
     } catch (error) {
-      console.error('Failed to save data to localStorage:', error)
+      console.error('Failed to load data:', error)
+      showNotification('数据加载失败: ' + error.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // 处理密码验证
+  const handlePasswordSubmit = useCallback(async (password) => {
+    try {
+      const result = await fetchData(password)
+      
+      if (result.success) {
+        const decompressed = decompressData(result.data)
+        setData(decompressed)
+        setIsAuthenticated(true)
+        setPassword(password)
+        setShowPasswordModal(false)
+        showNotification('认证成功')
+        return { success: true }
+      } else {
+        return { success: false, error: result.error }
+      }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  }, [])
+
+  // 保存数据到服务器
+  const saveData = useCallback(async (newData) => {
+    const password = getPassword()
+    if (!password) {
+      showNotification('请先输入密码')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const compressed = compressData(newData)
+      const result = await saveDataToServer(compressed, password)
+      
+      if (result.success) {
+        setData(newData)
+        showNotification('数据已保存')
+      } else {
+        if (result.error === '密码错误') {
+          clearPassword()
+          setIsAuthenticated(false)
+          setShowPasswordModal(true)
+        }
+        showNotification('保存失败: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Failed to save data:', error)
+      showNotification('保存失败')
+    } finally {
+      setIsSaving(false)
     }
   }, [])
 
@@ -104,9 +169,8 @@ export default function Dashboard() {
       const newData = { ...data, background: backgroundInput.trim() }
       saveData(newData)
       setShowSettings(false)
-      showNotification('背景已更新')
     }
-  }, [backgroundInput, data, saveData, showNotification])
+  }, [backgroundInput, data, saveData])
 
   // 添加分类
   const addCategory = useCallback(() => {
@@ -123,9 +187,8 @@ export default function Dashboard() {
       saveData(newData)
       setShowAddCategory(false)
       setCategoryNameInput('')
-      showNotification('分类已添加')
     }
-  }, [categoryNameInput, data, saveData, showNotification])
+  }, [categoryNameInput, data, saveData])
 
   // 删除分类
   const deleteCategory = useCallback((categoryId) => {
@@ -135,9 +198,8 @@ export default function Dashboard() {
         categories: data.categories.filter(cat => cat.id !== categoryId)
       }
       saveData(newData)
-      showNotification('分类已删除')
     }
-  }, [data, saveData, showNotification])
+  }, [data, saveData])
 
   // 打开添加卡片模态框
   const openAddCard = useCallback((categoryId) => {
@@ -167,9 +229,8 @@ export default function Dashboard() {
       
       saveData(newData)
       setShowAddCard(false)
-      showNotification('网站已添加')
     }
-  }, [cardData, currentCategoryId, data, saveData, showNotification])
+  }, [cardData, currentCategoryId, data, saveData])
 
   // 删除卡片
   const deleteCard = useCallback((categoryId, cardId) => {
@@ -182,8 +243,45 @@ export default function Dashboard() {
       )
     }
     saveData(newData)
-    showNotification('网站已删除')
-  }, [data, saveData, showNotification])
+  }, [data, saveData])
+
+  // 登出
+  const handleLogout = useCallback(() => {
+    if (confirm('确定要退出登录吗？')) {
+      clearPassword()
+      setIsAuthenticated(false)
+      setShowPasswordModal(true)
+      showNotification('已退出登录')
+    }
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', marginBottom: '1rem' }}></i>
+          <p>加载中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <div 
+          className="background-layer" 
+          style={{ backgroundImage: `url(${initialData.background})` }}
+        />
+        <PasswordModal
+          show={showPasswordModal}
+          onSubmit={handlePasswordSubmit}
+          onClose={() => {}}
+          loading={false}
+        />
+      </>
+    )
+  }
 
   return (
     <>
@@ -210,6 +308,14 @@ export default function Dashboard() {
             >
               <i className="fas fa-cog"></i>
             </button>
+            <button 
+              className="btn-icon" 
+              onClick={handleLogout}
+              title="退出登录"
+              type="button"
+            >
+              <i className="fas fa-sign-out-alt"></i>
+            </button>
           </div>
         </header>
 
@@ -232,6 +338,7 @@ export default function Dashboard() {
             setCategoryNameInput('')
           }}
           type="button"
+          disabled={isSaving}
         >
           <i className="fas fa-plus"></i>
           添加分类
@@ -254,11 +361,17 @@ export default function Dashboard() {
             placeholder="输入图片URL"
             value={backgroundInput}
             onChange={(e) => setBackgroundInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && updateBackground()}
+            onKeyPress={(e) => e.key === 'Enter' && !isSaving && updateBackground()}
+            disabled={isSaving}
           />
         </div>
-        <button className="btn-primary" onClick={updateBackground} type="button">
-          <i className="fas fa-save"></i> 保存背景
+        <button 
+          className="btn-primary" 
+          onClick={updateBackground}
+          disabled={isSaving}
+          type="button"
+        >
+          <i className="fas fa-save"></i> {isSaving ? '保存中...' : '保存背景'}
         </button>
       </Modal>
 
@@ -278,12 +391,18 @@ export default function Dashboard() {
             placeholder="例如：常用工具"
             value={categoryNameInput}
             onChange={(e) => setCategoryNameInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && addCategory()}
+            onKeyPress={(e) => e.key === 'Enter' && !isSaving && addCategory()}
             autoFocus
+            disabled={isSaving}
           />
         </div>
-        <button className="btn-primary" onClick={addCategory} type="button">
-          <i className="fas fa-check"></i> 添加
+        <button 
+          className="btn-primary" 
+          onClick={addCategory}
+          disabled={isSaving}
+          type="button"
+        >
+          <i className="fas fa-check"></i> {isSaving ? '添加中...' : '添加'}
         </button>
       </Modal>
 
@@ -304,6 +423,7 @@ export default function Dashboard() {
             value={cardData.title}
             onChange={(e) => setCardData({ ...cardData, title: e.target.value })}
             autoFocus
+            disabled={isSaving}
           />
         </div>
         <div className="form-group">
@@ -315,6 +435,7 @@ export default function Dashboard() {
             placeholder="https://example.com"
             value={cardData.url}
             onChange={(e) => setCardData({ ...cardData, url: e.target.value })}
+            disabled={isSaving}
           />
         </div>
         <div className="form-group">
@@ -326,13 +447,27 @@ export default function Dashboard() {
             placeholder="https://example.com/favicon.ico"
             value={cardData.icon}
             onChange={(e) => setCardData({ ...cardData, icon: e.target.value })}
-            onKeyPress={(e) => e.key === 'Enter' && addCard()}
+            onKeyPress={(e) => e.key === 'Enter' && !isSaving && addCard()}
+            disabled={isSaving}
           />
         </div>
-        <button className="btn-primary" onClick={addCard} type="button">
-          <i className="fas fa-check"></i> 添加
+        <button 
+          className="btn-primary" 
+          onClick={addCard}
+          disabled={isSaving}
+          type="button"
+        >
+          <i className="fas fa-check"></i> {isSaving ? '添加中...' : '添加'}
         </button>
       </Modal>
+
+      {/* 密码验证模态框 */}
+      <PasswordModal
+        show={showPasswordModal}
+        onSubmit={handlePasswordSubmit}
+        onClose={() => {}}
+        loading={false}
+      />
     </>
   )
 }
